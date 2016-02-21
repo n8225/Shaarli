@@ -1,6 +1,7 @@
 <div class="shaarli-menu pure-g" id="shaarli-menu">
   <div class="pure-u-lg-0 pure-u-1">
     <div class="pure-menu">
+      <!-- FIXME! default value in PHP -->
       <a href="{if="!empty($GLOBALS['titleLink'])"}{$GLOBALS['titleLink']}{else}?{/if}"
         class="pure-menu-link">
         <i class="fa fa-home"></i>
@@ -73,6 +74,16 @@
     </div>
   </div>
 </div>
+
+<div id="header" class="pure-u-0 pure-u-lg-visible">
+  <h1 id="header-title">
+    <a href="{if="!empty($GLOBALS['titleLink'])"}{$GLOBALS['titleLink']}{else}?{/if}">
+      {$GLOBALS['title']}
+    </a>
+  </h1>
+</div>
+
+<div id="content">
 
 <div id="logo" title="Share your links !" onclick="document.location='?';"></div>
 
