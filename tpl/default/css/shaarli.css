@@ -1,5 +1,39 @@
+/**
+ * General
+ */
 body {
 
+}
+
+.strong {
+    font-weight: bold;
+}
+
+.clear {
+    clear: both;
+}
+
+/**
+ * Extends Pure grids responsive to hide items.
+ * Use xx-0 to hide an item on xx screen.
+ * Display it at any level with xx-visible.
+ */
+.pure-u-0 { display: none !important; }
+@media screen and (min-width: 35.5em) {
+    .pure-u-sm-0 { display: none !important; }
+    .pure-u-sm-visible { display: inherit !important; }
+}
+@media screen and (min-width: 48em) {
+    .pure-u-md-0 { display: none !important; }
+    .pure-u-md-visible { display: inherit !important; }
+}
+@media screen and (min-width: 64em) {
+    .pure-u-lg-0 { display: none !important; }
+    .pure-u-lg-visible { display: inherit !important; }
+}
+@media screen and (min-width: 80em) {
+    .pure-u-xl-0 { display: none !important; }
+    .pure-u-xl-visible { display: inherit !important; }
 }
 
 /**
@@ -80,29 +114,6 @@ body {
 }
 
 /**
- * Extends Pure grids responsive to hide items.
- * Use xx-0 to hide an item on xx screen.
- * Display it at any level with xx-visible.
- */
-.pure-u-0 { display: none !important; }
-@media screen and (min-width: 35.5em) {
-    .pure-u-sm-0 { display: none !important; }
-    .pure-u-sm-visible { display: inherit !important; }
-}
-@media screen and (min-width: 48em) {
-    .pure-u-md-0 { display: none !important; }
-    .pure-u-md-visible { display: inherit !important; }
-}
-@media screen and (min-width: 64em) {
-    .pure-u-lg-0 { display: none !important; }
-    .pure-u-lg-visible { display: inherit !important; }
-}
-@media screen and (min-width: 80em) {
-    .pure-u-xl-0 { display: none !important; }
-    .pure-u-xl-visible { display: inherit !important; }
-}
-
-/**
  * Header
  */
 #header {
@@ -115,7 +126,7 @@ body {
     position: fixed;
     float: left;
     margin: 45px 0 0 0;
-    width: 45%;
+    width: 44%;
     height: 100px;
     text-align: right;
 }
@@ -138,6 +149,22 @@ body {
 
 #header h1 a:hover {
     color: #d1fff0;
+}
+
+#linkcount {
+    position: fixed;
+    top: 40px;
+    right: 10px;
+    color: #b0ddce;
+    font-size: 0.8em;
+}
+
+#search {
+    position: fixed;
+    top: 55px;
+    right: 10px;
+    width: 44%;
+    text-align: right;
 }
 
 #content {
