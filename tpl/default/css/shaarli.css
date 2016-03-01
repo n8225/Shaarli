@@ -296,7 +296,7 @@ body {
 .linklist-item {
     margin: 15px 0;
     background: #fff;
-    box-shadow: 1px 2px 1em #797979, -1px -1px 3em #797979;
+    box-shadow: 2px 2px 0.5em #797979;
 }
 
 .linklist-item-title, .linklist-item-title h2  {
@@ -340,5 +340,18 @@ body {
 
 .linklist-item-infos {
     padding: 5px;
-    background: #ddd;
+    background: #ddd url(../img/noise.png);
+    border-top: 1px solid #989898;
+    box-shadow: 1px -1px 0.2em #989898;
+    color: #252525;
+    font-size: 0.8em;
+}
+
+.linklist-item-infos a {
+    color: #000;
+    text-decoration: none;
+}
+
+.linklist-item-infos a:hover {
+    color: #252525;
 }

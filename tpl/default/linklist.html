@@ -31,7 +31,7 @@
       <div id="searchcriteria">{$result_count} results for tags <i>
       {loop="search_crits"}
         <span class="linktag" title="Remove tag">
-            <a href="?removetag={function=" urlencode($value)"}">{$value} <span class="remove">x</span></a>
+            <a href="?removetag={function="urlencode($value)"}">{$value} <span class="remove">x</span></a>
         </span>
       {/loop}</i></div>
     {/if}
@@ -51,7 +51,14 @@
             {/if}
 
             <h2>
-              <a href="{$value.real_url}" id="{$value.shorturl}">{$value.title}</a>
+              <a href="{$value.real_url}" id="{$value.shorturl}">
+              {if="strpos($value.url, $value.shorturl) === false"}
+                <i class="fa fa-external-link"></i>
+              {else}
+                <i class="fa fa-sticky-note"></i>
+              {/if}
+              {$value.title}
+              </a>
             </h2>
           </div>
 
@@ -63,27 +70,29 @@
             </div>
           {/if}
 
-          {if="$value.tags"}
-          <div class="linklist-item-tags">
-            {loop="value.taglist"}
-                    <span class="linktag" title="Add tag">
-                      <a href="?addtag={$value|urlencode}">{$value}</a>
-                    </span>
-            {/loop}
-          </div>
-          {/if}
-
           <div class="linklist-item-infos">
-            {if="!$GLOBALS['config']['HIDE_TIMESTAMPS'] || isLoggedIn()"}
-              <span class="linkdate" title="Permalink"><a href="?{$value.linkdate|smallHash}">
-                {function="strftime('%c', $value.timestamp)"} - permalink</a> -
-              </span>
-            {else}
-              <span class="linkdate" title="Short link here"><a href="?{$value.shorturl}">permalink</a> - </span>
+            {if="$value.tags"}
+              <div class="linklist-item-tags">
+                {loop="value.taglist"}
+                  <span class="linktag" title="Add tag">
+                    <a href="?addtag={$value|urlencode}">{$value}</a>
+                  </span>
+                {/loop}
+              </div>
             {/if}
 
+            <a href="?{$value.shorturl}" title="Permalink">
+              {if="!$GLOBALS['config']['HIDE_TIMESTAMPS'] || isLoggedIn()"}
+                <span class="linkdate">
+                  <i class="fa fa-clock-o"></i>
+                  {function="strftime('%d %B %Y %H:%M', $value.timestamp)"} &middot;
+                </span>
+              {/if}
+              permalink &middot;
+            </a>
+
             {loop="$value.link_plugin"}
-              <span>{$value}</span> -
+              <span>{$value}</span> &middot;
             {/loop}
 
             <a href="{$value.real_url}"><span class="linkurl" title="Short link">{$value.url}</span></a>
