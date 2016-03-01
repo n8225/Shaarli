@@ -1,6 +1,6 @@
 <?php
 /**
- * Shaarli v0.6.3 - Shaare your links...
+ * Shaarli v0.6.4 - Shaare your links...
  *
  * The personal, minimalist, super-fast, no-database Delicious clone.
  *
@@ -125,7 +125,7 @@ $GLOBALS['config']['PUBSUBHUB_URL'] = '';
 /*
  * PHP configuration
  */
-define('shaarli_version', '0.6.3');
+define('shaarli_version', '0.6.4');
 
 // http://server.com/x/shaarli --> /shaarli/
 define('WEB_PATH', substr($_SERVER["REQUEST_URI"], 0, 1+strrpos($_SERVER["REQUEST_URI"], '/', 0)));
@@ -268,7 +268,10 @@ $GLOBALS['redirector'] = !empty($GLOBALS['redirector']) ? escape($GLOBALS['redir
 // a token depending of deployment salt, user password, and the current ip
 define('STAY_SIGNED_IN_TOKEN', sha1($GLOBALS['hash'].$_SERVER["REMOTE_ADDR"].$GLOBALS['salt']));
 
-autoLocale(); // Sniff browser language and set date format accordingly.
+// Sniff browser language and set date format accordingly.
+if (isset($_SERVER['HTTP_ACCEPT_LANGUAGE'])) {
+    autoLocale($_SERVER['HTTP_ACCEPT_LANGUAGE']);
+}
 header('Content-Type: text/html; charset=utf-8'); // We use UTF-8 for proper international characters handling.
 
 //==================================================================================================
@@ -314,26 +317,6 @@ function setup_login_state() {
 	return $userIsLoggedIn;
 }
 $userIsLoggedIn = setup_login_state();
-
-
-// ------------------------------------------------------------------------------------------
-// Sniff browser language to display dates in the right format automatically.
-// (Note that is may not work on your server if the corresponding local is not installed.)
-function autoLocale()
-{
-    $attempts = array('en_US'); // Default if browser does not send HTTP_ACCEPT_LANGUAGE
-    if (isset($_SERVER['HTTP_ACCEPT_LANGUAGE'])) // e.g. "fr,fr-fr;q=0.8,en;q=0.5,en-us;q=0.3"
-    {   // (It's a bit crude, but it works very well. Preferred language is always presented first.)
-        if (preg_match('/([a-z]{2})-?([a-z]{2})?/i',$_SERVER['HTTP_ACCEPT_LANGUAGE'],$matches)) {
-            $loc = $matches[1] . (!empty($matches[2]) ? '_' . strtoupper($matches[2]) : '');
-            $attempts = array($loc.'.UTF-8', $loc, str_replace('_', '-', $loc).'.UTF-8', str_replace('_', '-', $loc),
-                $loc . '_' . strtoupper($loc).'.UTF-8', $loc . '_' . strtoupper($loc),
-                $loc . '_' . $loc.'.UTF-8', $loc . '_' . $loc, $loc . '-' . strtoupper($loc).'.UTF-8',
-                $loc . '-' . strtoupper($loc), $loc . '-' . $loc.'.UTF-8', $loc . '-' . $loc);
-        }
-    }
-    setlocale(LC_TIME, $attempts);  // LC_TIME = Set local for date/time format only.
-}
 
 // ------------------------------------------------------------------------------------------
 // PubSubHubbub protocol support (if enabled)  [UNTESTED]
@@ -551,33 +534,6 @@ function getMaxFileSize()
     return $maxsize;
 }
 
-/*  Converts a linkdate time (YYYYMMDD_HHMMSS) of an article to a timestamp (Unix epoch)
-    (used to build the ADD_DATE attribute in Netscape-bookmarks file)
-    PS: I could have used strptime(), but it does not exist on Windows. I'm too kind. */
-function linkdate2timestamp($linkdate)
-{
-    if(strcmp($linkdate, '_000000') !== 0 || !$linkdate){
-        $Y=$M=$D=$h=$m=$s=0;
-        $r = sscanf($linkdate,'%4d%2d%2d_%2d%2d%2d',$Y,$M,$D,$h,$m,$s);
-        return mktime($h,$m,$s,$M,$D,$Y);
-    }
-    return time();
-}
-
-/*  Converts a linkdate time (YYYYMMDD_HHMMSS) of an article to a RFC822 date.
-    (used to build the pubDate attribute in RSS feed.)  */
-function linkdate2rfc822($linkdate)
-{
-    return date('r',linkdate2timestamp($linkdate)); // 'r' is for RFC822 date format.
-}
-
-/*  Converts a linkdate time (YYYYMMDD_HHMMSS) of an article to a ISO 8601 date.
-    (used to build the updated tags in ATOM feed.)  */
-function linkdate2iso8601($linkdate)
-{
-    return date('c',linkdate2timestamp($linkdate)); // 'c' is for ISO 8601 date format.
-}
-
 // ------------------------------------------------------------------------------------------
 // Token management for XSRF protection
 // Token should be used in any form which acts on data (create,update,delete,import...).
@@ -650,7 +606,7 @@ class pageBuilder
         if (!empty($_GET['searchtags'])) {
             $searchcrits .= '&searchtags=' . urlencode($_GET['searchtags']);
         }
-        elseif (!empty($_GET['searchterm'])) {
+        if (!empty($_GET['searchterm'])) {
             $searchcrits .= '&searchterm=' . urlencode($_GET['searchterm']);
         }
         $this->tpl->assign('searchcrits', $searchcrits);
@@ -736,11 +692,19 @@ function showRSS()
     // Read links from database (and filter private links if user it not logged in).
 
     // Optionally filter the results:
-    if (!empty($_GET['searchterm'])) {
-        $linksToDisplay = $LINKSDB->filter(LinkFilter::$FILTER_TEXT, $_GET['searchterm']);
+    $searchtags = !empty($_GET['searchtags']) ? escape($_GET['searchtags']) : '';
+    $searchterm = !empty($_GET['searchterm']) ? escape($_GET['searchterm']) : '';
+    if (! empty($searchtags) && ! empty($searchterm)) {
+        $linksToDisplay = $LINKSDB->filter(
+            LinkFilter::$FILTER_TAG | LinkFilter::$FILTER_TEXT,
+            array($searchtags, $searchterm)
+        );
     }
-    elseif (!empty($_GET['searchtags'])) {
-        $linksToDisplay = $LINKSDB->filter(LinkFilter::$FILTER_TAG, trim($_GET['searchtags']));
+    elseif ($searchtags) {
+        $linksToDisplay = $LINKSDB->filter(LinkFilter::$FILTER_TAG, $searchtags);
+    }
+    elseif ($searchterm) {
+        $linksToDisplay = $LINKSDB->filter(LinkFilter::$FILTER_TEXT, $searchterm);
     }
     else {
         $linksToDisplay = $LINKSDB;
@@ -769,14 +733,16 @@ function showRSS()
     {
         $link = $linksToDisplay[$keys[$i]];
         $guid = $pageaddr.'?'.smallHash($link['linkdate']);
-        $rfc822date = linkdate2rfc822($link['linkdate']);
+        $date = DateTime::createFromFormat(LinkDB::LINK_DATE_FORMAT, $link['linkdate']);
         $absurl = $link['url'];
         if (startsWith($absurl,'?')) $absurl=$pageaddr.$absurl;  // make permalink URL absolute
         if ($usepermalinks===true)
             echo '<item><title>'.$link['title'].'</title><guid isPermaLink="true">'.$guid.'</guid><link>'.$guid.'</link>';
         else
             echo '<item><title>'.$link['title'].'</title><guid isPermaLink="false">'.$guid.'</guid><link>'.$absurl.'</link>';
-        if (!$GLOBALS['config']['HIDE_TIMESTAMPS'] || isLoggedIn()) echo '<pubDate>'.escape($rfc822date)."</pubDate>\n";
+        if (!$GLOBALS['config']['HIDE_TIMESTAMPS'] || isLoggedIn()) {
+            echo '<pubDate>'.escape($date->format(DateTime::RSS))."</pubDate>\n";
+        }
         if ($link['tags']!='') // Adding tags to each RSS entry (as mentioned in RSS specification)
         {
             foreach(explode(' ',$link['tags']) as $tag) { echo '<category domain="'.$pageaddr.'">'.$tag.'</category>'."\n"; }
@@ -832,11 +798,19 @@ function showATOM()
     );
 
     // Optionally filter the results:
-    if (!empty($_GET['searchterm'])) {
-        $linksToDisplay = $LINKSDB->filter(LinkFilter::$FILTER_TEXT, $_GET['searchterm']);
+    $searchtags = !empty($_GET['searchtags']) ? escape($_GET['searchtags']) : '';
+    $searchterm = !empty($_GET['searchterm']) ? escape($_GET['searchterm']) : '';
+    if (! empty($searchtags) && ! empty($searchterm)) {
+        $linksToDisplay = $LINKSDB->filter(
+            LinkFilter::$FILTER_TAG | LinkFilter::$FILTER_TEXT,
+            array($searchtags, $searchterm)
+        );
     }
-    else if (!empty($_GET['searchtags'])) {
-        $linksToDisplay = $LINKSDB->filter(LinkFilter::$FILTER_TAG, trim($_GET['searchtags']));
+    elseif ($searchtags) {
+        $linksToDisplay = $LINKSDB->filter(LinkFilter::$FILTER_TAG, $searchtags);
+    }
+    elseif ($searchterm) {
+        $linksToDisplay = $LINKSDB->filter(LinkFilter::$FILTER_TEXT, $searchterm);
     }
     else {
         $linksToDisplay = $LINKSDB;
@@ -857,8 +831,9 @@ function showATOM()
     {
         $link = $linksToDisplay[$keys[$i]];
         $guid = $pageaddr.'?'.smallHash($link['linkdate']);
-        $iso8601date = linkdate2iso8601($link['linkdate']);
-        $latestDate = max($latestDate,$iso8601date);
+        $date = DateTime::createFromFormat(LinkDB::LINK_DATE_FORMAT, $link['linkdate']);
+        $iso8601date = $date->format(DateTime::ISO8601);
+        $latestDate = max($latestDate, $iso8601date);
         $absurl = $link['url'];
         if (startsWith($absurl,'?')) $absurl=$pageaddr.$absurl;  // make permalink URL absolute
         $entries.='<entry><title>'.$link['title'].'</title>';
@@ -866,7 +841,10 @@ function showATOM()
             $entries.='<link href="'.$guid.'" /><id>'.$guid.'</id>';
         else
             $entries.='<link href="'.$absurl.'" /><id>'.$guid.'</id>';
-        if (!$GLOBALS['config']['HIDE_TIMESTAMPS'] || isLoggedIn()) $entries.='<updated>'.escape($iso8601date).'</updated>';
+
+        if (!$GLOBALS['config']['HIDE_TIMESTAMPS'] || isLoggedIn()) {
+            $entries.='<updated>'.escape($iso8601date).'</updated>';
+        }
 
         // Add permalink in description
         $descriptionlink = '(<a href="'.$guid.'">Permalink</a>)';
@@ -972,8 +950,7 @@ function showDailyRSS() {
 
     // For each day.
     foreach ($days as $day => $linkdates) {
-        $daydate = linkdate2timestamp($day.'_000000'); // Full text date
-        $rfc822date = linkdate2rfc822($day.'_000000');
+        $dayDate = DateTime::createFromFormat(LinkDB::LINK_DATE_FORMAT, $day.'_000000');
         $absurl = escape(index_url($_SERVER).'?do=daily&day='.$day);  // Absolute URL of the corresponding "Daily" page.
 
         // Build the HTML body of this RSS entry.
@@ -986,7 +963,8 @@ function showDailyRSS() {
             $l = $LINKSDB[$linkdate];
             $l['formatedDescription'] = format_description($l['description'], $GLOBALS['redirector']);
             $l['thumbnail'] = thumbnail($l['url']);
-            $l['timestamp'] = linkdate2timestamp($l['linkdate']);
+            $l_date = DateTime::createFromFormat(LinkDB::LINK_DATE_FORMAT, $l['linkdate']);
+            $l['timestamp'] = $l_date->getTimestamp();
             if (startsWith($l['url'], '?')) {
                 $l['url'] = index_url($_SERVER) . $l['url'];  // make permalink URL absolute
             }
@@ -996,10 +974,10 @@ function showDailyRSS() {
         // Then build the HTML for this day:
         $tpl = new RainTPL;
         $tpl->assign('title', $GLOBALS['title']);
-        $tpl->assign('daydate', $daydate);
+        $tpl->assign('daydate', $dayDate->getTimestamp());
         $tpl->assign('absurl', $absurl);
         $tpl->assign('links', $links);
-        $tpl->assign('rfc822date', escape($rfc822date));
+        $tpl->assign('rssdate', escape($dayDate->format(DateTime::RSS)));
         $html = $tpl->draw('dailyrss', $return_string=true);
 
         echo $html . PHP_EOL;
@@ -1055,7 +1033,8 @@ function showDaily($pageBuilder)
         $linksToDisplay[$key]['taglist']=$taglist;
         $linksToDisplay[$key]['formatedDescription'] = format_description($link['description'], $GLOBALS['redirector']);
         $linksToDisplay[$key]['thumbnail'] = thumbnail($link['url']);
-        $linksToDisplay[$key]['timestamp'] = linkdate2timestamp($link['linkdate']);
+        $date = DateTime::createFromFormat(LinkDB::LINK_DATE_FORMAT, $link['linkdate']);
+        $linksToDisplay[$key]['timestamp'] = $date->getTimestamp();
     }
 
     /* We need to spread the articles on 3 columns.
@@ -1080,11 +1059,12 @@ function showDaily($pageBuilder)
         $fill[$index]+=$length;
     }
 
+    $dayDate = DateTime::createFromFormat(LinkDB::LINK_DATE_FORMAT, $day.'_000000');
     $data = array(
         'linksToDisplay' => $linksToDisplay,
         'linkcount' => count($LINKSDB),
         'cols' => $columns,
-        'day' => linkdate2timestamp($day.'_000000'),
+        'day' => $dayDate->getTimestamp(),
         'previousday' => $previousday,
         'nextday' => $nextday,
     );
@@ -1184,11 +1164,19 @@ function renderPage()
     if ($targetPage == Router::$PAGE_PICWALL)
     {
         // Optionally filter the results:
-        if (!empty($_GET['searchterm'])) {
-            $links = $LINKSDB->filter(LinkFilter::$FILTER_TEXT, $_GET['searchterm']);
+        $searchtags = !empty($_GET['searchtags']) ? escape($_GET['searchtags']) : '';
+        $searchterm = !empty($_GET['searchterm']) ? escape($_GET['searchterm']) : '';
+        if (! empty($searchtags) && ! empty($searchterm)) {
+            $links = $LINKSDB->filter(
+                LinkFilter::$FILTER_TAG | LinkFilter::$FILTER_TEXT,
+                array($searchtags, $searchterm)
+            );
         }
-        elseif (! empty($_GET['searchtags'])) {
-            $links = $LINKSDB->filter(LinkFilter::$FILTER_TAG, trim($_GET['searchtags']));
+        elseif ($searchtags) {
+            $links = $LINKSDB->filter(LinkFilter::$FILTER_TAG, $searchtags);
+        }
+        elseif ($searchterm) {
+            $links = $LINKSDB->filter(LinkFilter::$FILTER_TEXT, $searchterm);
         }
         else {
             $links = $LINKSDB;
@@ -1238,11 +1226,12 @@ function renderPage()
         uksort($tags, function($a, $b) {
             // Collator is part of PHP intl.
             if (class_exists('Collator')) {
-                $c = new Collator(setlocale(LC_ALL, 0));
-                return $c->compare($a, $b);
-            } else {
-                return strcasecmp($a, $b);
+                $c = new Collator(setlocale(LC_COLLATE, 0));
+                if (!intl_is_failure(intl_get_error_code())) {
+                    return $c->compare($a, $b);
+                }
             }
+            return strcasecmp($a, $b);
         });
 
         $tagList=array();
@@ -1588,7 +1577,7 @@ function renderPage()
         $link = array(
             'title' => trim($_POST['lf_title']),
             'url' => $url,
-            'description' => trim($_POST['lf_description']),
+            'description' => $_POST['lf_description'],
             'private' => (isset($_POST['lf_private']) ? 1 : 0),
             'linkdate' => $linkdate,
             'tags' => str_replace(',', ' ', $tags)
@@ -1799,7 +1788,8 @@ HTML;
                ($exportWhat=='private' && $link['private']!=0) ||
                ($exportWhat=='public' && $link['private']==0))
             {
-                echo '<DT><A HREF="'.$link['url'].'" ADD_DATE="'.linkdate2timestamp($link['linkdate']).'" PRIVATE="'.$link['private'].'"';
+                $date = DateTime::createFromFormat(LinkDB::LINK_DATE_FORMAT, $link['linkdate']);
+                echo '<DT><A HREF="'.$link['url'].'" ADD_DATE="'.$date->getTimestamp().'" PRIVATE="'.$link['private'].'"';
                 if ($link['tags']!='') echo ' TAGS="'.str_replace(' ',',',$link['tags']).'"';
                 echo '>'.$link['title']."</A>\n";
                 if ($link['description']!='') echo '<DD>'.$link['description']."\n";
@@ -1981,29 +1971,46 @@ function importFile()
 // This function fills all the necessary fields in the $PAGE for the template 'linklist.html'
 function buildLinkList($PAGE,$LINKSDB)
 {
-    // ---- Filter link database according to parameters
-    $search_type = '';
-    $search_crits = '';
+    // Filter link database according to parameters.
+    $searchtags = !empty($_GET['searchtags']) ? escape($_GET['searchtags']) : '';
+    $searchterm = !empty($_GET['searchterm']) ? escape(trim($_GET['searchterm'])) : '';
     $privateonly = !empty($_SESSION['privateonly']) ? true : false;
 
-    // Fulltext search
-    if (isset($_GET['searchterm'])) {
-        $search_crits = escape(trim($_GET['searchterm']));
-        $search_type = LinkFilter::$FILTER_TEXT;
-        $linksToDisplay = $LINKSDB->filter($search_type, $search_crits, false, $privateonly);
+    // Search tags + fullsearch.
+    if (! empty($searchtags) && ! empty($searchterm)) {
+        $linksToDisplay = $LINKSDB->filter(
+            LinkFilter::$FILTER_TAG | LinkFilter::$FILTER_TEXT,
+            array($searchtags, $searchterm),
+            false,
+            $privateonly
+        );
     }
-    // Search by tag
-    elseif (isset($_GET['searchtags'])) {
-        $search_crits = explode(' ', escape(trim($_GET['searchtags'])));
-        $search_type = LinkFilter::$FILTER_TAG;
-        $linksToDisplay = $LINKSDB->filter($search_type, $search_crits, false, $privateonly);
+    // Search by tags.
+    elseif (! empty($searchtags)) {
+        $linksToDisplay = $LINKSDB->filter(
+            LinkFilter::$FILTER_TAG,
+            $searchtags,
+            false,
+            $privateonly
+        );
+    }
+    // Fulltext search.
+    elseif (! empty($searchterm)) {
+        $linksToDisplay = $LINKSDB->filter(
+            LinkFilter::$FILTER_TEXT,
+            $searchterm,
+            false,
+            $privateonly
+        );
     }
     // Detect smallHashes in URL.
-    elseif (isset($_SERVER['QUERY_STRING'])
-        && preg_match('/[a-zA-Z0-9-_@]{6}(&.+?)?/', $_SERVER['QUERY_STRING'])) {
-        $search_type = LinkFilter::$FILTER_HASH;
-        $search_crits = substr(trim($_SERVER["QUERY_STRING"], '/'), 0, 6);
-        $linksToDisplay = $LINKSDB->filter($search_type, $search_crits);
+    elseif (! empty($_SERVER['QUERY_STRING'])
+        && preg_match('/[a-zA-Z0-9-_@]{6}(&.+?)?/', $_SERVER['QUERY_STRING'])
+    ) {
+        $linksToDisplay = $LINKSDB->filter(
+            LinkFilter::$FILTER_HASH,
+            substr(trim($_SERVER["QUERY_STRING"], '/'), 0, 6)
+        );
 
         if (count($linksToDisplay) == 0) {
             $PAGE->render404('The link you are trying to reach does not exist or has been deleted.');
@@ -2042,7 +2049,8 @@ function buildLinkList($PAGE,$LINKSDB)
         $link['description'] = format_description($link['description'], $GLOBALS['redirector']);
         $classLi =  ($i % 2) != 0 ? '' : 'publicLinkHightLight';
         $link['class'] = $link['private'] == 0 ? $classLi : 'private';
-        $link['timestamp'] = linkdate2timestamp($link['linkdate']);
+        $date = DateTime::createFromFormat(LinkDB::LINK_DATE_FORMAT, $link['linkdate']);
+        $link['timestamp'] = $date->getTimestamp();
         $taglist = explode(' ', $link['tags']);
         uasort($taglist, 'strcasecmp');
         $link['taglist'] = $taglist;
@@ -2058,21 +2066,18 @@ function buildLinkList($PAGE,$LINKSDB)
     }
 
     // Compute paging navigation
-    $searchterm = empty($_GET['searchterm']) ? '' : '&searchterm=' . $_GET['searchterm'];
-    $searchtags = empty($_GET['searchtags']) ? '' : '&searchtags=' . $_GET['searchtags'];
+    $searchtagsUrl = empty($searchtags) ? '' : '&searchtags=' . urlencode($searchtags);
+    $searchtermUrl = empty($searchterm) ? '' : '&searchterm=' . urlencode($searchterm);
     $previous_page_url = '';
     if ($i != count($keys)) {
-        $previous_page_url = '?page=' . ($page+1) . $searchterm . $searchtags;
+        $previous_page_url = '?page=' . ($page+1) . $searchtermUrl . $searchtagsUrl;
     }
     $next_page_url='';
     if ($page>1) {
-        $next_page_url = '?page=' . ($page-1) . $searchterm . $searchtags;
+        $next_page_url = '?page=' . ($page-1) . $searchtermUrl . $searchtagsUrl;
     }
 
-    $token = '';
-    if (isLoggedIn()) {
-        $token = getToken();
-    }
+    $token = isLoggedIn() ? getToken() : '';
 
     // Fill all template fields.
     $data = array(
@@ -2082,8 +2087,8 @@ function buildLinkList($PAGE,$LINKSDB)
         'page_current' => $page,
         'page_max' => $pagecount,
         'result_count' => count($linksToDisplay),
-        'search_type' => $search_type,
-        'search_crits' => $search_crits,
+        'search_term' => $searchterm,
+        'search_tags' => $searchtags,
         'redirector' => empty($GLOBALS['redirector']) ? '' : $GLOBALS['redirector'],  // Optional redirector URL.
         'token' => $token,
         'links' => $linkDisp,

@@ -33,6 +33,10 @@ h1 {
     margin-bottom: 20px;
 }
 
+em {
+    font-style: italic;
+}
+
 /* Buttons */
 .bigbutton {
     background-color: #c0c0c0;
@@ -1147,6 +1151,10 @@ ul.errors {
     margin: 10px 0;
 }
 
+#pluginsadmin label {
+    cursor: pointer;
+}
+
 #pluginsadmin .plugin_parameter {
     padding: 5px 0;
     border-width: 1px 0;
@@ -1173,4 +1181,9 @@ ul.errors {
     text-decoration: none;
     font-style: normal;
     color: #80AD48;
+}
+
+.linklist-plugin-icon {
+    width: 13px;
+    height: 13px;
 }

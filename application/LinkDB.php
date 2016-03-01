@@ -32,6 +32,9 @@ class LinkDB implements Iterator, Countable, ArrayAccess
     // Links are stored as a PHP serialized string
     private $_datastore;
 
+    // Link date storage format
+    const LINK_DATE_FORMAT = 'Ymd_His';
+
     // Datastore PHP prefix
     protected static $phpPrefix = '<?php /* ';
 
@@ -350,8 +353,7 @@ You use the community supported version of the original Shaarli project, by Seba
     public function filter($type = '', $request = '', $casesensitive = false, $privateonly = false)
     {
         $linkFilter = new LinkFilter($this->_links);
-        $requestFilter = is_array($request) ? implode(' ', $request) : $request;
-        return $linkFilter->filter($type, trim($requestFilter), $casesensitive, $privateonly);
+        return $linkFilter->filter($type, $request, $casesensitive, $privateonly);
     }
 
     /**
