@@ -45,19 +45,25 @@
           <div class="linklist-item-title">
             {if="isLoggedIn()"}
               <div class="linklist-item-editbuttons">
-                <a href="?edit_link={$value.linkdate}"><i class="fa fa-pencil-square-o"></i></a>
-                <a href="?delete_link={$value.linkdate}&amp;token={$token}"><i class="fa fa-trash"></i></a>
+                <a href="#" title="Fold" class="fold-button"><i class="fa fa-chevron-up"></i></a>
+                <a href="?edit_link={$value.linkdate}" title="Edit"><i class="fa fa-pencil-square-o"></i></a>
+                <a href="?delete_link={$value.linkdate}&amp;token={$token}" title="Delete"><i class="fa fa-trash"></i></a>
               </div>
             {/if}
 
             <h2>
               <a href="{$value.real_url}" id="{$value.shorturl}">
-              {if="strpos($value.url, $value.shorturl) === false"}
-                <i class="fa fa-external-link"></i>
-              {else}
-                <i class="fa fa-sticky-note"></i>
-              {/if}
-              {$value.title}
+                {if="strpos($value.url, $value.shorturl) === false"}
+                  <i class="fa fa-external-link"></i>
+                {else}
+                  <i class="fa fa-sticky-note"></i>
+                {/if}
+
+                {if="$value.private"}
+                  <span class="label label-private">Private</span>
+                {/if}
+
+                {$value.title}
               </a>
             </h2>
           </div>
@@ -73,29 +79,35 @@
           <div class="linklist-item-infos">
             {if="$value.tags"}
               <div class="linklist-item-tags">
+                <i class="fa fa-tags"></i>
                 {loop="value.taglist"}
-                  <span class="linktag" title="Add tag">
+                  <span class="label label-tag" title="Add tag">
                     <a href="?addtag={$value|urlencode}">{$value}</a>
                   </span>
                 {/loop}
               </div>
             {/if}
 
-            <a href="?{$value.shorturl}" title="Permalink">
-              {if="!$GLOBALS['config']['HIDE_TIMESTAMPS'] || isLoggedIn()"}
-                <span class="linkdate">
-                  <i class="fa fa-clock-o"></i>
-                  {function="strftime('%d %B %Y %H:%M', $value.timestamp)"} &middot;
-                </span>
-              {/if}
-              permalink &middot;
-            </a>
+            <div class="pure-g">
+              <div class="pure-u-lg-5-8 pure-u-sm-1">
+                <a href="?{$value.shorturl}" title="Permalink">
+                  {if="!$GLOBALS['config']['HIDE_TIMESTAMPS'] || isLoggedIn()"}
+                    <span class="linkdate">
+                      <i class="fa fa-clock-o"></i>
+                      {function="strftime('%d %B %Y %H:%M', $value.timestamp)"} &middot;
+                    </span>
+                  {/if}
+                  permalink &middot;
+                </a>
 
-            {loop="$value.link_plugin"}
-              <span>{$value}</span> &middot;
-            {/loop}
-
-            <a href="{$value.real_url}"><span class="linkurl" title="Short link">{$value.url}</span></a>
+                {loop="$value.link_plugin"}
+                  <span>{$value}</span> &middot;
+                {/loop}
+              </div>
+              <div class="linklist-item-infos-url pure-u-lg-3-8 pure-u-sm-1">
+                <a href="{$value.real_url}"><span class="linkurl" title="Short link">{$value.url}</span></a>
+              </div>
+            </div>
           </div>
         </div>
       {/loop}
