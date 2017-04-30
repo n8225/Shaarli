@@ -94,7 +94,7 @@ body, .pure-g [class*="pure-u"] {
 }
 
 .pure-alert-success {
-    background-color: #1b926c;
+    background-color: #1e6f9a;
 }
 
 .anchor:target {
@@ -291,7 +291,7 @@ body, .pure-g [class*="pure-u"] {
     position: fixed;
     width: 100%;
     text-align: center;
-    background: #1b926c;
+    background: #1e6f9a;
     display: block;
     z-index: 999;
     height: 30px;
@@ -340,7 +340,7 @@ body, .pure-g [class*="pure-u"] {
     padding: 4px 0 4px 0;
     height: 28px;
     width: 100px;
-    background: #1b926c;
+    background: #1e6f9a;
     border: 1px solid #f5f5f5;
     color: #f5f5f5;
     border-radius: 2px;
@@ -348,7 +348,7 @@ body, .pure-g [class*="pure-u"] {
 
 .subheader-form input[type="submit"]:hover {
     background: #f5f5f5;
-    color: #1b926c;
+    color: #1e6f9a;
 }
 
 .new-version-message {
@@ -435,7 +435,7 @@ body, .pure-g [class*="pure-u"] {
 
 .linklist-filters .filter-on {
     color: #b0ddce;
-    background: #1b926c;
+    background: #1e6f9a;
 }
 
 .linklist-pages {
@@ -590,7 +590,7 @@ body, .pure-g [class*="pure-u"] {
 
 .linklist-item-description a {
     text-decoration: none;
-    color: #1b926c;
+    color: #1e6f9a;
 }
 
 .linklist-item-description a:hover {
@@ -723,7 +723,7 @@ body, .pure-g [class*="pure-u"] {
     margin: 0 0 10px 0;
     padding: 10px 0;
     width: 100%;
-    color: #1b926c;
+    color: #1e6f9a;
     background: #f5f5f5;
     text-align: center;
 }
@@ -733,7 +733,7 @@ body, .pure-g [class*="pure-u"] {
 }
 
 .page-form a {
-    color: #1b926c;
+    color: #1e6f9a;
     font-weight: bold;
 }
 
@@ -775,7 +775,7 @@ body, .pure-g [class*="pure-u"] {
     height: 35px;
     line-height: 35px;
     width: 150px;
-    background: #1b926c;
+    background: #1e6f9a;
     color: #f5f5f5;
     border: none;
     box-shadow: 1px 1px 1px #ddd, -1px -1px 6px #ddd, -1px 1px 2px #ddd, 1px -1px 2px #ddd;
@@ -1013,7 +1013,7 @@ form[name="linkform"].page-form {
 
 .tools-item .pure-button:hover {
     background-image: none;
-    background-color: #1b926c;
+    background-color: #1e6f9a;
     color: #f5f5f5;
 }
 
@@ -1194,7 +1194,7 @@ form[name="linkform"].page-form {
 
 .daily-entry-description a {
     text-decoration: none;
-    color: #1b926c;
+    color: #1e6f9a;
 }
 
 .daily-entry-description a:hover {
